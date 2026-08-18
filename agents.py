@@ -1,27 +1,21 @@
 from langchain.agents import create_agent
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 from tools import web_scrape, web_search
-from dotenv import load_dotenv
-import os
-load_dotenv()
-
-#model steup
-llm = ChatOpenAI(model_name="gpt-5.4-mini", temperature=0, api_key=os.getenv("OPENAI_API_KEY"))
+import model_selection
 
 
 # 1st agent with create_agent() instead of create_react_agent() (legacy)
 # with create_react_agent(), it was a bit more complex to set up the prompt template and output parser, but with create_agent(), it is simpler and more straightforward. The agent will use the tools provided to perform web search and web scraping tasks. Parsing the output also becomes easier with this approach, as we can directly use the StrOutputParser to handle the output from the tools. This makes it easier to extract relevant information and present it in a user-friendly format.
 def build_search_agent():
+    print(f"{model_selection.selected_model} is the openai model used for creating the final report.")
     return create_agent(
-        model=llm,
+        model=model_selection.response_llm,
         tools=[web_search]
     )
 
 def build_reader_agent():
     return create_agent(
-        model=llm,
+        model=model_selection.response_llm,
         tools=[web_scrape]
     )
 
@@ -47,12 +41,6 @@ writer_prompt = ChatPromptTemplate.from_messages([
     """)
 ])
 
-#now with this writer prompt let's create a writer chain this will be used to get result just by invoking the chain.
-
-# writer chain
-writer_chain = writer_prompt | llm | StrOutputParser()
-
-# critic_chain
 critic_prompt = ChatPromptTemplate.from_messages([
     "system", "You are a sharp and constructive critic. Be honest and specific.",
     "human", """Review the research report below and eavluate it stritcly.
@@ -74,5 +62,3 @@ critic_prompt = ChatPromptTemplate.from_messages([
     ...
     """
 ])
-
-critic_chain = critic_prompt | llm | StrOutputParser()
